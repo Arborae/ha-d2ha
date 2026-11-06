@@ -54,13 +54,17 @@ class D2HACoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return None
 
     def job_for(self, key: str, name: str) -> dict[str, Any] | None:
-        """The running job updating this container, dedicated or update-all."""
+        """The running job updating this container, dedicated or update-all.
+
+        An update-all job updates one container at a time: per API.md its
+        ``label`` is the name of the container it is on right now.
+        """
         fallback = None
         for job in self.data.get("jobs", []):
             if job.get("state") not in ("queued", "running"):
                 continue
             if job.get("kind") == "update" and job.get("target") == key:
                 return job
-            if job.get("kind") == "update_all":
+            if job.get("kind") == "update_all" and job.get("label") == name:
                 fallback = job
         return fallback

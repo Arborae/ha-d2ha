@@ -50,7 +50,7 @@ class D2HAClient:
                 payload: dict[str, Any] = await resp.json(content_type=None)
         except (ClientError, asyncio.TimeoutError) as exc:
             raise D2HAConnectionError("error.cannot_connect") from exc
-        except (ValueError, TypeError) as exc:
+        except ValueError as exc:  # JSON decoding: do not hide programming errors
             raise D2HAError("error.bad_response") from exc
         if resp.status == 401:
             raise D2HAAuthError("error.unauthorized")
