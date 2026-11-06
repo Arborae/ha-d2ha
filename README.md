@@ -43,7 +43,7 @@ Choose which containers appear in Home Assistant in D2HA, **Settings → Home As
 ## Development
 
 ```bash
-python3.13 -m venv .venv && .venv/bin/pip install -r requirements_test.txt
+python3.14 -m venv .venv && .venv/bin/pip install -r requirements_test.txt
 .venv/bin/pytest -q
 ```
 
