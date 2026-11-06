@@ -1,0 +1,124 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to D2HA",
+        "description": "The address of D2HA and an API token from D2HA, **Settings → Home Assistant**.",
+        "data": {
+          "url": "Address of D2HA",
+          "token": "API token"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Renew the D2HA token",
+        "description": "The API token is no longer valid. Create a new one in D2HA, **Settings → Home Assistant**.",
+        "data": {
+          "token": "API token"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot reach D2HA at this address.",
+      "invalid_auth": "The token is wrong or was revoked.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This D2HA server is already configured.",
+      "reauth_successful": "The token was updated."
+    }
+  },
+  "entity": {
+    "update": {
+      "container_update": {
+        "name": "Update"
+      }
+    },
+    "sensor": {
+      "updates_available": {
+        "name": "Updates available"
+      },
+      "containers_running": {
+        "name": "Containers running"
+      },
+      "unused_images": {
+        "name": "Unused images"
+      },
+      "container_state": {
+        "name": "{name} state"
+      }
+    },
+    "button": {
+      "check_now": {
+        "name": "Check for updates"
+      },
+      "update_all": {
+        "name": "Update all"
+      },
+      "clean_images": {
+        "name": "Clean images"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_update": {
+      "message": "This container cannot be updated from Home Assistant (read-only mode, pinned or local image, the socket proxy or D2HA itself): update it by hand."
+    },
+    "update_failed": {
+      "message": "The update failed: {error}."
+    },
+    "job_lost": {
+      "message": "D2HA lost track of the update job; check the D2HA interface."
+    },
+    "job_timeout": {
+      "message": "The update is taking too long; follow it in the D2HA interface."
+    },
+    "notes_failed": {
+      "message": "The release notes could not be read: {error}."
+    },
+    "action_failed": {
+      "message": "The action failed: {error}."
+    },
+    "api_bad_request": {
+      "message": "D2HA refused the request."
+    },
+    "api_self_update": {
+      "message": "D2HA cannot update itself: update it by hand."
+    },
+    "api_proxy_update": {
+      "message": "The socket proxy cannot be updated from here: update it by hand."
+    },
+    "api_unauthorized": {
+      "message": "The API token was refused: renew it from the integration settings."
+    },
+    "api_csrf": {
+      "message": "The request was refused (CSRF check)."
+    },
+    "api_read_only": {
+      "message": "D2HA is in read-only mode."
+    },
+    "api_not_found": {
+      "message": "D2HA no longer knows this container or job."
+    },
+    "api_no_notes": {
+      "message": "There are no release notes for this container."
+    },
+    "api_nothing_to_update": {
+      "message": "Nothing to update."
+    },
+    "api_rate_limited": {
+      "message": "Too many requests to D2HA: try again in a minute."
+    },
+    "job_pull_failed": {
+      "message": "The update failed while downloading the new image."
+    },
+    "job_recreate_failed": {
+      "message": "The update failed while recreating the container; the old container was restored."
+    },
+    "job_no_tag": {
+      "message": "The update failed: the image has no tag to update to."
+    },
+    "job_not_found": {
+      "message": "The update failed: the container or the image was not found."
+    }
+  }
+}
