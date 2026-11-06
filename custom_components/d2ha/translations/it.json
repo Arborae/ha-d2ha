@@ -1,0 +1,83 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Collega D2HA",
+        "description": "L'indirizzo di D2HA e un token API da D2HA, **Impostazioni → Home Assistant**.",
+        "data": {
+          "url": "Indirizzo di D2HA",
+          "token": "Token API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Rinnova il token di D2HA",
+        "description": "Il token API non è più valido. Creane uno nuovo in D2HA, **Impostazioni → Home Assistant**.",
+        "data": {
+          "url": "Indirizzo di D2HA",
+          "token": "Token API"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile raggiungere D2HA a questo indirizzo.",
+      "invalid_auth": "Il token è sbagliato o è stato revocato.",
+      "unknown": "Errore inatteso."
+    },
+    "abort": {
+      "already_configured": "Questo server D2HA è già configurato.",
+      "reauth_successful": "Il token è stato aggiornato."
+    }
+  },
+  "entity": {
+    "update": {
+      "container_update": {
+        "name": "Aggiornamento"
+      }
+    },
+    "sensor": {
+      "updates_available": {
+        "name": "Aggiornamenti disponibili"
+      },
+      "containers_running": {
+        "name": "Container in esecuzione"
+      },
+      "unused_images": {
+        "name": "Immagini inutilizzate"
+      },
+      "container_state": {
+        "name": "Stato"
+      }
+    },
+    "button": {
+      "check_now": {
+        "name": "Controlla aggiornamenti"
+      },
+      "update_all": {
+        "name": "Aggiorna tutto"
+      },
+      "clean_images": {
+        "name": "Pulisci immagini"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_update": {
+      "message": "Questo container non può essere aggiornato da qui (modalità sola lettura, immagine fissata o locale, oppure D2HA stesso)."
+    },
+    "update_failed": {
+      "message": "L'aggiornamento è fallito: {error}."
+    },
+    "job_lost": {
+      "message": "D2HA ha perso traccia del lavoro di aggiornamento; controlla l'interfaccia di D2HA."
+    },
+    "job_timeout": {
+      "message": "L'aggiornamento sta impiegando troppo; seguilo nell'interfaccia di D2HA."
+    },
+    "notes_failed": {
+      "message": "Impossibile leggere le note di rilascio: {error}."
+    },
+    "action_failed": {
+      "message": "L'azione è fallita: {error}."
+    }
+  }
+}
