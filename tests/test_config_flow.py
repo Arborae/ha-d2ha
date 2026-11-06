@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import aiohttp
 import pytest
 
 from homeassistant.config_entries import SOURCE_USER
@@ -30,8 +31,8 @@ async def test_full_flow(hass, d2ha_server):
 
 
 async def test_wrong_token(hass, d2ha_server):
-    d2ha_server.clear()
-    d2ha_server.get(f"{URL}/api/v1/info", status=401, payload={"error": "unauthorized"})
+    d2ha_server.clear_requests()
+    d2ha_server.get(f"{URL}/api/v1/info", status=401, json={"error": "unauthorized"})
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )
@@ -43,8 +44,10 @@ async def test_wrong_token(hass, d2ha_server):
 
 
 async def test_unreachable(hass, d2ha_server):
-    # d2ha_server is active but has no route for this host: aioresponses
-    # raises a connection error, as a dead server would.
+    d2ha_server.get(
+        "http://127.0.0.1:9/api/v1/info",
+        exc=aiohttp.ClientConnectionError("refused"),
+    )
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-from aioresponses import aioresponses
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
@@ -96,20 +95,58 @@ CONTAINERS = {
 }
 
 
+def make_container(key: str, name: str, **overrides):
+    """A container entry on the API contract; overrides change any field."""
+    container = {
+        "key": key,
+        "id": f"id-{key}",
+        "name": name,
+        "stack": "",
+        "image": f"{name}/{name}:latest",
+        "image_id": "sha256:x",
+        "state": "running",
+        "status": "Up 1 day",
+        "health": "",
+        "created": 1762100000,
+        "is_self": False,
+        "is_proxy": False,
+        "update": "current",
+        "installed_version": "1.0",
+        "latest_version": "1.0",
+        "release_url": "",
+        "has_notes": False,
+        "breaking": False,
+        "error": "",
+        "ha": True,
+        "can_update": False,
+    }
+    container.update(overrides)
+    return container
+
+
+def with_container(*extra) -> dict:
+    """The CONTAINERS payload plus extra containers."""
+    return {**CONTAINERS, "containers": [*CONTAINERS["containers"], *extra]}
+
+
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     """Load the custom integration in every test."""
     yield
 
 
+def register_d2ha(mock, info=INFO, containers=CONTAINERS, jobs=None):
+    """Point the fake server at the given answers."""
+    mock.get(f"{URL}/api/v1/info", json=info)
+    mock.get(f"{URL}/api/v1/containers?ha=1", json=containers)
+    mock.get(f"{URL}/api/v1/jobs", json={"jobs": jobs or []})
+
+
 @pytest.fixture
-def d2ha_server():
+def d2ha_server(aioclient_mock):
     """Intercept every HTTP call to the fake D2HA server."""
-    with aioresponses() as mock:
-        mock.get(f"{URL}/api/v1/info", payload=INFO, repeat=True)
-        mock.get(f"{URL}/api/v1/containers?ha=1", payload=CONTAINERS, repeat=True)
-        mock.get(f"{URL}/api/v1/jobs", payload={"jobs": []}, repeat=True)
-        yield mock
+    register_d2ha(aioclient_mock)
+    return aioclient_mock
 
 
 async def setup_integration(hass, url=URL, token=TOKEN):
