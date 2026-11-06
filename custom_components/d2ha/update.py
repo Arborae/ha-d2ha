@@ -7,7 +7,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -15,6 +15,7 @@ from .api import D2HAError
 from .const import DOMAIN, JOB_POLL_INTERVAL, JOB_TIMEOUT
 from .coordinator import D2HACoordinator
 from .entity import D2HAEntity
+from .errors import d2ha_error
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,27 +25,39 @@ PARALLEL_UPDATES = 0
 async def async_setup_entry(
     hass: HomeAssistant, entry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator: D2HACoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(
-        D2HAContainerUpdate(coordinator, entry.entry_id, container["key"])
-        for container in coordinator.data.get("containers", [])
-    )
+    coordinator: D2HACoordinator = entry.runtime_data
+    known: set[str] = set()
+
+    @callback
+    def add_new_containers() -> None:
+        """Entities for containers that appear after the setup (new, or enabled in D2HA)."""
+        new = [
+            container
+            for container in coordinator.data.get("containers", [])
+            if container["key"] not in known
+        ]
+        if not new:
+            return
+        known.update(container["key"] for container in new)
+        async_add_entities(
+            D2HAContainerUpdate(coordinator, entry.entry_id, container["key"])
+            for container in new
+        )
+
+    add_new_containers()
+    entry.async_on_unload(coordinator.async_add_listener(add_new_containers))
 
 
 class D2HAContainerUpdate(D2HAEntity, UpdateEntity):
     """The update state of one container; install runs the safe update."""
 
-    _attr_supported_features = (
-        UpdateEntityFeature.INSTALL
-        | UpdateEntityFeature.PROGRESS
-        | UpdateEntityFeature.RELEASE_NOTES
-    )
     _attr_translation_key = "container_update"
 
     def __init__(self, coordinator: D2HACoordinator, entry_id: str, key: str) -> None:
         super().__init__(coordinator, entry_id)
         self._key = key
         self._attr_unique_id = f"{entry_id}_{key}_update"
+        self._active_job: dict[str, Any] | None = None
         container = coordinator.container(key) or {}
         self._attr_name = container.get("name", key)
 
@@ -53,14 +66,32 @@ class D2HAContainerUpdate(D2HAEntity, UpdateEntity):
         return self.coordinator.container(self._key) or {}
 
     @property
+    def _job(self) -> dict[str, Any] | None:
+        """The job updating this container: the one followed live, else the coordinator's."""
+        if self._active_job is not None:
+            return self._active_job
+        return self.coordinator.job_for(self._key, self._container.get("name", ""))
+
+    @property
+    def supported_features(self) -> UpdateEntityFeature:
+        """Install only when D2HA allows it (API.md: offer install when can_update)."""
+        features = UpdateEntityFeature.PROGRESS | UpdateEntityFeature.RELEASE_NOTES
+        if self._container.get("can_update"):
+            features |= UpdateEntityFeature.INSTALL
+        return features
+
+    @property
     def installed_version(self) -> str | None:
         return self._container.get("installed_version")
 
     @property
     def latest_version(self) -> str | None:
         container = self._container
-        if container.get("update") == "available":
+        status = container.get("update")
+        if status == "available":
             return container.get("latest_version")
+        if status in ("unknown", "error"):
+            return None  # D2HA does not know: HA must not claim "up-to-date"
         return container.get("installed_version")
 
     @property
@@ -68,12 +99,16 @@ class D2HAContainerUpdate(D2HAEntity, UpdateEntity):
         return self._container.get("release_url") or None
 
     @property
-    def in_progress(self) -> int | bool:
-        job = self.coordinator.job_for(self._key, self._container.get("name", ""))
+    def in_progress(self) -> bool:
+        return self._job is not None
+
+    @property
+    def update_percentage(self) -> int | None:
+        job = self._job
         if not job:
-            return False
+            return None
         percent = job.get("percent")
-        return int(percent) if percent is not None else True
+        return int(percent) if percent is not None else None
 
     @property
     def available(self) -> bool:
@@ -98,11 +133,7 @@ class D2HAContainerUpdate(D2HAEntity, UpdateEntity):
         try:
             notes = await self.coordinator.client.notes(self._key)
         except D2HAError as exc:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="notes_failed",
-                translation_placeholders={"error": exc.code},
-            ) from exc
+            raise d2ha_error("notes_failed", exc.code) from exc
         if not notes:
             return None
         return notes.get("body")
@@ -120,18 +151,21 @@ class D2HAContainerUpdate(D2HAEntity, UpdateEntity):
         try:
             job_id = await client.update_container(self._key)
         except D2HAError as exc:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="update_failed",
-                translation_placeholders={"error": exc.code},
-            ) from exc
+            raise d2ha_error("update_failed", exc.code) from exc
+        self._active_job = {"id": job_id, "state": "queued"}
         self.async_write_ha_state()
-        await _follow_job(client, job_id, self)
+        # The coordinator speeds up while jobs run, so the other entities follow too.
+        await self.coordinator.async_request_refresh()
+        try:
+            await _follow_job(client, job_id, self)
+        finally:
+            self._active_job = None
+            self.async_write_ha_state()
         await self.coordinator.async_request_refresh()
 
 
 async def _follow_job(client, job_id: str, entity: D2HAContainerUpdate) -> None:
-    """Poll the job until it ends; raise with the D2HA error code on failure."""
+    """Poll the job until it ends; the entity shows its progress meanwhile."""
     elapsed = 0.0
     while elapsed < JOB_TIMEOUT:
         try:
@@ -142,16 +176,13 @@ async def _follow_job(client, job_id: str, entity: D2HAContainerUpdate) -> None:
             raise HomeAssistantError(
                 translation_domain=DOMAIN, translation_key="job_lost"
             )
+        entity._active_job = job
         entity.async_write_ha_state()
         state = job.get("state")
         if state == "done":
             return
         if state == "failed":
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="update_failed",
-                translation_placeholders={"error": job.get("error", "error.generic")},
-            )
+            raise d2ha_error("update_failed", job.get("error", "error.generic"))
         await asyncio.sleep(JOB_POLL_INTERVAL)
         elapsed += JOB_POLL_INTERVAL
     raise HomeAssistantError(translation_domain=DOMAIN, translation_key="job_timeout")

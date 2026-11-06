@@ -5,10 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
 from .coordinator import D2HACoordinator
 from .entity import D2HAEntity
 
@@ -18,17 +17,34 @@ PARALLEL_UPDATES = 0
 async def async_setup_entry(
     hass: HomeAssistant, entry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator: D2HACoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[SensorEntity] = [
-        D2HACounterSensor(coordinator, entry.entry_id, "updates_available"),
-        D2HACounterSensor(coordinator, entry.entry_id, "containers_running"),
-        D2HACounterSensor(coordinator, entry.entry_id, "unused_images"),
-    ]
-    entities += [
-        D2HAContainerStateSensor(coordinator, entry.entry_id, container["key"])
-        for container in coordinator.data.get("containers", [])
-    ]
-    async_add_entities(entities)
+    coordinator: D2HACoordinator = entry.runtime_data
+    async_add_entities(
+        [
+            D2HACounterSensor(coordinator, entry.entry_id, "updates_available"),
+            D2HACounterSensor(coordinator, entry.entry_id, "containers_running"),
+            D2HACounterSensor(coordinator, entry.entry_id, "unused_images"),
+        ]
+    )
+    known: set[str] = set()
+
+    @callback
+    def add_new_containers() -> None:
+        """State sensors for containers that appear after the setup."""
+        new = [
+            container
+            for container in coordinator.data.get("containers", [])
+            if container["key"] not in known
+        ]
+        if not new:
+            return
+        known.update(container["key"] for container in new)
+        async_add_entities(
+            D2HAContainerStateSensor(coordinator, entry.entry_id, container["key"])
+            for container in new
+        )
+
+    add_new_containers()
+    entry.async_on_unload(coordinator.async_add_listener(add_new_containers))
 
 
 class D2HACounterSensor(D2HAEntity, SensorEntity):
@@ -77,7 +93,7 @@ class D2HAContainerStateSensor(D2HAEntity, SensorEntity):
         self._attr_unique_id = f"{entry_id}_{key}_state"
         container = coordinator.container(key) or {}
         name = container.get("name", key)
-        self._attr_name = f"{name} state"
+        self._attr_translation_placeholders = {"name": name}
         self._attr_suggested_object_id = f"d2ha_{name}_state"
 
     @property
