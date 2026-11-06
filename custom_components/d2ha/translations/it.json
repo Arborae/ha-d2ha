@@ -44,7 +44,7 @@
         "name": "Immagini inutilizzate"
       },
       "container_state": {
-        "name": "Stato"
+        "name": "Stato {name}"
       }
     },
     "button": {
@@ -61,7 +61,7 @@
   },
   "exceptions": {
     "cannot_update": {
-      "message": "Questo container non può essere aggiornato da qui (modalità sola lettura, immagine fissata o locale, oppure D2HA stesso)."
+      "message": "Questo container non può essere aggiornato da Home Assistant (modalità sola lettura, immagine fissata o locale, il socket proxy oppure D2HA stesso): aggiornalo a mano."
     },
     "update_failed": {
       "message": "L'aggiornamento è fallito: {error}."
@@ -77,6 +77,48 @@
     },
     "action_failed": {
       "message": "L'azione è fallita: {error}."
+    },
+    "api_bad_request": {
+      "message": "D2HA ha rifiutato la richiesta."
+    },
+    "api_self_update": {
+      "message": "D2HA non può aggiornare sé stesso: aggiornalo a mano."
+    },
+    "api_proxy_update": {
+      "message": "Il socket proxy non può essere aggiornato da qui: aggiornalo a mano."
+    },
+    "api_unauthorized": {
+      "message": "Il token API è stato rifiutato: rinnovalo dalle impostazioni dell'integrazione."
+    },
+    "api_csrf": {
+      "message": "La richiesta è stata rifiutata (controllo CSRF)."
+    },
+    "api_read_only": {
+      "message": "D2HA è in modalità sola lettura."
+    },
+    "api_not_found": {
+      "message": "D2HA non conosce più questo container o lavoro."
+    },
+    "api_no_notes": {
+      "message": "Non ci sono note di rilascio per questo container."
+    },
+    "api_nothing_to_update": {
+      "message": "Niente da aggiornare."
+    },
+    "api_rate_limited": {
+      "message": "Troppe richieste a D2HA: riprova tra un minuto."
+    },
+    "job_pull_failed": {
+      "message": "L'aggiornamento è fallito durante lo scaricamento della nuova immagine."
+    },
+    "job_recreate_failed": {
+      "message": "L'aggiornamento è fallito durante la ricreazione del container; il container precedente è stato ripristinato."
+    },
+    "job_no_tag": {
+      "message": "L'aggiornamento è fallito: l'immagine non ha un'etichetta a cui aggiornare."
+    },
+    "job_not_found": {
+      "message": "L'aggiornamento è fallito: il container o l'immagine non sono stati trovati."
     }
   }
 }

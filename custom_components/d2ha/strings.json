@@ -44,7 +44,7 @@
         "name": "Unused images"
       },
       "container_state": {
-        "name": "State"
+        "name": "{name} state"
       }
     },
     "button": {
@@ -61,7 +61,7 @@
   },
   "exceptions": {
     "cannot_update": {
-      "message": "This container cannot be updated from here (read-only mode, pinned or local image, or D2HA itself)."
+      "message": "This container cannot be updated from Home Assistant (read-only mode, pinned or local image, the socket proxy or D2HA itself): update it by hand."
     },
     "update_failed": {
       "message": "The update failed: {error}."
@@ -77,6 +77,48 @@
     },
     "action_failed": {
       "message": "The action failed: {error}."
+    },
+    "api_bad_request": {
+      "message": "D2HA refused the request."
+    },
+    "api_self_update": {
+      "message": "D2HA cannot update itself: update it by hand."
+    },
+    "api_proxy_update": {
+      "message": "The socket proxy cannot be updated from here: update it by hand."
+    },
+    "api_unauthorized": {
+      "message": "The API token was refused: renew it from the integration settings."
+    },
+    "api_csrf": {
+      "message": "The request was refused (CSRF check)."
+    },
+    "api_read_only": {
+      "message": "D2HA is in read-only mode."
+    },
+    "api_not_found": {
+      "message": "D2HA no longer knows this container or job."
+    },
+    "api_no_notes": {
+      "message": "There are no release notes for this container."
+    },
+    "api_nothing_to_update": {
+      "message": "Nothing to update."
+    },
+    "api_rate_limited": {
+      "message": "Too many requests to D2HA: try again in a minute."
+    },
+    "job_pull_failed": {
+      "message": "The update failed while downloading the new image."
+    },
+    "job_recreate_failed": {
+      "message": "The update failed while recreating the container; the old container was restored."
+    },
+    "job_no_tag": {
+      "message": "The update failed: the image has no tag to update to."
+    },
+    "job_not_found": {
+      "message": "The update failed: the container or the image was not found."
     }
   }
 }
