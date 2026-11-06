@@ -13,7 +13,6 @@
         "title": "Rinnova il token di D2HA",
         "description": "Il token API non è più valido. Creane uno nuovo in D2HA, **Impostazioni → Home Assistant**.",
         "data": {
-          "url": "Indirizzo di D2HA",
           "token": "Token API"
         }
       }
