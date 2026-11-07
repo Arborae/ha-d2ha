@@ -158,10 +158,12 @@ class D2HAContainerUpdate(D2HAEntity, UpdateEntity):
         await self.coordinator.async_request_refresh()
         try:
             await _follow_job(client, job_id, self)
+            # Refresh at once (not the debounced request), so the new version
+            # shows immediately instead of the old one for about a second.
+            await self.coordinator.async_refresh()
         finally:
             self._active_job = None
             self.async_write_ha_state()
-        await self.coordinator.async_request_refresh()
 
 
 async def _follow_job(client, job_id: str, entity: D2HAContainerUpdate) -> None:
@@ -182,7 +184,7 @@ async def _follow_job(client, job_id: str, entity: D2HAContainerUpdate) -> None:
         if state == "done":
             return
         if state == "failed":
-            raise d2ha_error("update_failed", job.get("error", "error.generic"))
+            raise d2ha_error("update_failed", job.get("error") or "error.generic")
         await asyncio.sleep(JOB_POLL_INTERVAL)
         elapsed += JOB_POLL_INTERVAL
     raise HomeAssistantError(translation_domain=DOMAIN, translation_key="job_timeout")
