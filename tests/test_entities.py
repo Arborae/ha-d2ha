@@ -9,6 +9,7 @@ import pytest
 from homeassistant.exceptions import HomeAssistantError
 
 from conftest import (
+    CONTAINERS,
     INFO,
     URL,
     make_container,
@@ -267,3 +268,83 @@ async def test_progress_is_live_during_install(hass, d2ha_server, monkeypatch):
     assert seen, "the percentage never showed while the job was running"
     state = hass.states.get("update.d2ha_jellyfin")
     assert state.attributes["in_progress"] is False
+
+
+async def test_failed_job_without_error_uses_the_generic_message(hass, d2ha_server):
+    """D2HA may send "error": null on a failed job; the message stays generic."""
+    await setup_integration(hass)
+    d2ha_server.post(
+        f"{URL}/api/v1/containers/media_jellyfin/update",
+        status=202,
+        json={"id": "job1", "state": "queued"},
+    )
+    d2ha_server.get(
+        f"{URL}/api/v1/jobs/job1",
+        json={"id": "job1", "state": "failed", "error": None},
+    )
+    with pytest.raises(HomeAssistantError) as excinfo:
+        await hass.services.async_call(
+            "update",
+            "install",
+            {"entity_id": "update.d2ha_jellyfin"},
+            blocking=True,
+        )
+    assert excinfo.value.translation_key == "update_failed"
+    assert excinfo.value.translation_placeholders == {"error": "error.generic"}
+
+
+async def test_the_new_version_shows_right_after_the_install(hass, d2ha_server, monkeypatch):
+    """No stale state: the refresh at the end of the job is not debounced."""
+    from pytest_homeassistant_custom_component.test_util.aiohttp import (
+        AiohttpClientMockResponse,
+    )
+
+    from custom_components.d2ha import update as update_module
+
+    monkeypatch.setattr(update_module, "JOB_POLL_INTERVAL", 0.01)
+    await setup_integration(hass)
+    updated = {
+        **CONTAINERS,
+        "containers": [
+            {
+                **c,
+                "update": "current",
+                "installed_version": "12.4",
+                "latest_version": "12.4",
+            }
+            if c["key"] == "media_jellyfin"
+            else c
+            for c in CONTAINERS["containers"]
+        ],
+    }
+    containers_calls = 0
+
+    async def containers_side_effect(method, url, data):
+        # Old data at the refresh right after the job starts, new data at the end.
+        nonlocal containers_calls
+        containers_calls += 1
+        payload = CONTAINERS if containers_calls == 1 else updated
+        return AiohttpClientMockResponse(method=method, url=url, json=payload)
+
+    d2ha_server.clear_requests()
+    d2ha_server.get(f"{URL}/api/v1/info", json=INFO)
+    d2ha_server.get(f"{URL}/api/v1/jobs", json={"jobs": []})
+    d2ha_server.get(f"{URL}/api/v1/containers?ha=1", side_effect=containers_side_effect)
+    d2ha_server.post(
+        f"{URL}/api/v1/containers/media_jellyfin/update",
+        status=202,
+        json={"id": "job1", "state": "queued"},
+    )
+    d2ha_server.get(
+        f"{URL}/api/v1/jobs/job1",
+        json={"id": "job1", "state": "done", "result": {"changed": True}},
+    )
+    await hass.services.async_call(
+        "update",
+        "install",
+        {"entity_id": "update.d2ha_jellyfin"},
+        blocking=True,
+    )
+    state = hass.states.get("update.d2ha_jellyfin")
+    assert state.attributes["installed_version"] == "12.4"
+    assert state.state == "off"
