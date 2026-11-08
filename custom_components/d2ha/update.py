@@ -14,12 +14,22 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .api import D2HAError
 from .const import DOMAIN, JOB_POLL_INTERVAL, JOB_TIMEOUT
 from .coordinator import D2HACoordinator
-from .entity import D2HAEntity
+from .entity import D2HAContainerEntity
 from .errors import d2ha_error
 
 _LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 0
+
+
+def _image_name(image: str | None) -> str | None:
+    """The image reference without tag or digest (a registry port is kept)."""
+    if not image:
+        return None
+    name = image.split("@", 1)[0]
+    if name.rfind(":") > name.rfind("/"):
+        name = name[: name.rfind(":")]
+    return name
 
 
 async def async_setup_entry(
@@ -48,18 +58,15 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(add_new_containers))
 
 
-class D2HAContainerUpdate(D2HAEntity, UpdateEntity):
+class D2HAContainerUpdate(D2HAContainerEntity, UpdateEntity):
     """The update state of one container; install runs the safe update."""
 
     _attr_translation_key = "container_update"
 
     def __init__(self, coordinator: D2HACoordinator, entry_id: str, key: str) -> None:
-        super().__init__(coordinator, entry_id)
-        self._key = key
+        super().__init__(coordinator, entry_id, key)
         self._attr_unique_id = f"{entry_id}_{key}_update"
         self._active_job: dict[str, Any] | None = None
-        container = coordinator.container(key) or {}
-        self._attr_name = container.get("name", key)
 
     @property
     def _container(self) -> dict[str, Any]:
@@ -79,6 +86,11 @@ class D2HAContainerUpdate(D2HAEntity, UpdateEntity):
         if self._container.get("can_update"):
             features |= UpdateEntityFeature.INSTALL
         return features
+
+    @property
+    def title(self) -> str | None:
+        """What is being updated: the image without tag or digest."""
+        return _image_name(self._container.get("image"))
 
     @property
     def installed_version(self) -> str | None:

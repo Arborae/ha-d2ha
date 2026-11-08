@@ -27,6 +27,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: D2HAConfigEntry) -> bool
     coordinator = D2HACoordinator(hass, client)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+    # The server device exists before the platforms, so container devices can
+    # link to it with via_device_id.
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, entry.entry_id)},
+        name="D2HA",
+        manufacturer="Arborae",
+        sw_version=coordinator.data.get("info", {}).get("version"),
+        configuration_url=client.url,
+    )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     def update_device_version() -> None:
@@ -44,3 +54,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: D2HAConfigEntry) -> bool
 
 async def async_unload_entry(hass: HomeAssistant, entry: D2HAConfigEntry) -> bool:
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: D2HAConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """A container device can be deleted once D2HA no longer lists the container."""
+    coordinator = entry.runtime_data
+    prefix = f"{entry.entry_id}_"
+    for domain, identifier in device_entry.identifiers:
+        if domain != DOMAIN or not identifier.startswith(prefix):
+            continue
+        return coordinator.container(identifier[len(prefix):]) is None
+    return False
