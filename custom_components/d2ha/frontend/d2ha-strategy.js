@@ -148,17 +148,17 @@
 
     // With the entry not loaded every entity is unavailable: say once that
     // D2HA is not reachable, instead of a false "Everything is up to date.".
+    // Any state but "unavailable" (buttons read "unknown") means D2HA has
+    // answered; a disabled entity is simply not in hass.entities.
     var updatesAvailableIds = byTranslationKey(
       hass,
       serverEntityIds,
       "updates_available"
     );
-    var updatesAvailableState = updatesAvailableIds.length
-      ? hass.states[updatesAvailableIds[0]]
-      : null;
-    var reachable = !!(
-      updatesAvailableState && updatesAvailableState.state !== "unavailable"
-    );
+    var reachable = serverEntityIds.some(function (entityId) {
+      var state = hass.states[entityId];
+      return state && state.state !== "unavailable";
+    });
 
     // Overview: running out of the total, updates available.
     var overviewCards = [
@@ -205,7 +205,10 @@
     });
     sortByName(hass, pending).forEach(function (entityId) {
       updateCards.push(
-        tile(entityId, { features: [{ type: "update-actions" }] })
+        tile(entityId, {
+          name: { type: "device" },
+          features: [{ type: "update-actions" }],
+        })
       );
     });
     if (pending.length === 0 && reachable) {

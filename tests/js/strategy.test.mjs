@@ -10,7 +10,12 @@ await import("../../custom_components/d2ha/frontend/d2ha-strategy.js");
 
 const { generateDashboard } = globalThis.__d2haStrategy;
 
-function sampleHass({ language = "en", jellyfinUpdate = "on", d2haDown = false } = {}) {
+function sampleHass({
+  language = "en",
+  jellyfinUpdate = "on",
+  d2haDown = false,
+  updatesAvailableDisabled = false,
+} = {}) {
   const hass = {
     language,
     devices: {
@@ -171,6 +176,11 @@ function sampleHass({ language = "en", jellyfinUpdate = "on", d2haDown = false }
       }
     }
   }
+  if (updatesAvailableDisabled) {
+    // A disabled entity is in neither hass.entities nor hass.states.
+    delete hass.entities["sensor.d2ha_updates_available"];
+    delete hass.states["sensor.d2ha_updates_available"];
+  }
   return hass;
 }
 
@@ -263,6 +273,27 @@ test("d2ha unreachable, in Italian", () => {
     )
   );
   assert.ok(!sections["Aggiornamenti"].some((card) => card.type === "markdown"));
+});
+
+test("updates_available disabled: no unreachable note, live counter", () => {
+  const sections = sectionsByHeading(
+    generateDashboard(sampleHass({ updatesAvailableDisabled: true })).views[0]
+  );
+  const overview = sections["Overview"];
+  assert.ok(
+    !overview.some(
+      (card) => card.type === "markdown" && card.content.includes("not reachable")
+    ),
+    "no unreachable note"
+  );
+  assert.ok(
+    overview.some(
+      (card) => card.type === "markdown" && card.content.includes("2 / 3")
+    ),
+    "the live counter"
+  );
+  const updates = sections["Updates"];
+  assert.ok(updates.some((card) => card.entity === "update.jellyfin_update"));
 });
 
 test("update all and clean images ask for confirmation, check does not", () => {
