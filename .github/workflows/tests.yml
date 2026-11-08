@@ -20,3 +20,12 @@ jobs:
         run: pip install -r requirements_test.txt
       - name: Tests
         run: pytest -q
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Strategy tests
+        run: node --test 'tests/js/*.test.mjs'
