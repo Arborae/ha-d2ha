@@ -60,6 +60,9 @@ Choose which containers appear in Home Assistant in D2HA, **Settings → Home As
   through the `/api/v1` API with the bearer token; the contract is
   [API.md](https://github.com/Arborae/docker2homeassistant/blob/main/API.md).
 - Everything stays on your network: the integration only talks to your D2HA.
+- Every container is its own device, named after the container. Devices have no area
+  on their own: assign one (the device page, pencil icon) and Settings → Updates
+  groups the rows by it.
 
 ## Development
 
