@@ -6,7 +6,8 @@ dashboards and automations.
 
 ## What you get
 
-One **D2HA** device with, for every container you choose in D2HA:
+One device for every container you choose in D2HA (named after the container,
+under the **D2HA** server device), each with:
 
 - an **update entity** — installed and latest version, release notes of the exact new
   version, breaking changes flag, live progress while updating, *Install* to run the safe
