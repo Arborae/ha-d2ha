@@ -23,6 +23,15 @@ Plus server-wide entities:
 Updates started from the D2HA web interface show their progress here too, and an
 "updates available" sensor makes Telegram or mobile notifications a two-line automation.
 
+## Dashboard
+
+The integration ships a dashboard strategy: **Settings → Dashboards → Add dashboard →
+D2HA** creates a page that builds itself — the counters, the pending updates with
+release notes and install actions, the containers grouped by stack with health and
+update status, and the maintenance actions. It is rebuilt from the live entities every
+time it opens, with built-in cards only, in English and Italian, and needs nothing else
+installed. With more than one D2HA server configured, the dashboard has one view each.
+
 ## Installation
 
 Requires Home Assistant 2026.8 or later.
@@ -51,6 +60,9 @@ Choose which containers appear in Home Assistant in D2HA, **Settings → Home As
   through the `/api/v1` API with the bearer token; the contract is
   [API.md](https://github.com/Arborae/docker2homeassistant/blob/main/API.md).
 - Everything stays on your network: the integration only talks to your D2HA.
+- Every container is its own device, named after the container. Devices have no area
+  on their own: assign one (the device page, pencil icon) and Settings → Updates
+  groups the rows by it.
 
 ## Development
 

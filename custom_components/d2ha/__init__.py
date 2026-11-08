@@ -12,6 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import D2HAClient
 from .const import CONF_TOKEN, CONF_URL, DOMAIN
 from .coordinator import D2HACoordinator
+from .frontend import async_register_frontend
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,6 +22,10 @@ type D2HAConfigEntry = ConfigEntry[D2HACoordinator]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: D2HAConfigEntry) -> bool:
+    # The strategy module is served before the first refresh: when D2HA is
+    # down at start-up the entry goes into setup retry, but a saved D2HA
+    # dashboard must still find /d2ha_frontend/d2ha-strategy.js.
+    await async_register_frontend(hass)
     client = D2HAClient(
         async_get_clientsession(hass), entry.data[CONF_URL], entry.data[CONF_TOKEN]
     )
