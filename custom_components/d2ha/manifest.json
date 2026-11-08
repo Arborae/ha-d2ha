@@ -3,6 +3,7 @@
   "name": "D2HA",
   "codeowners": ["@giosci1994", "@chopin94"],
   "config_flow": true,
+  "dependencies": ["http"],
   "documentation": "https://github.com/Arborae/ha-d2ha",
   "integration_type": "hub",
   "iot_class": "local_polling",

@@ -22,6 +22,15 @@ Plus server-wide entities:
 Updates started from the D2HA web interface show their progress here too, and an
 "updates available" sensor makes Telegram or mobile notifications a two-line automation.
 
+## Dashboard
+
+The integration ships a dashboard strategy: **Settings → Dashboards → Add dashboard →
+D2HA** creates a page that builds itself — the counters, the pending updates with
+release notes and install actions, the containers grouped by stack with health and
+update status, and the maintenance actions. It is rebuilt from the live entities every
+time it opens, with built-in cards only, in English and Italian, and needs nothing else
+installed. With more than one D2HA server configured, the dashboard has one view each.
+
 ## Installation
 
 1. In **HACS → ⋮ → Custom repositories**, add `https://github.com/Arborae/ha-d2ha` with

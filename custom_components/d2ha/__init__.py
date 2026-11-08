@@ -12,6 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import D2HAClient
 from .const import CONF_TOKEN, CONF_URL, DOMAIN
 from .coordinator import D2HACoordinator
+from .frontend import async_register_frontend
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: D2HAConfigEntry) -> bool
     coordinator = D2HACoordinator(hass, client)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+    await async_register_frontend(hass)
     # The server device exists before the platforms, so container devices can
     # link to it with via_device_id.
     dr.async_get(hass).async_get_or_create(
