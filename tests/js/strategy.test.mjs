@@ -10,8 +10,8 @@ await import("../../custom_components/d2ha/frontend/d2ha-strategy.js");
 
 const { generateDashboard } = globalThis.__d2haStrategy;
 
-function sampleHass({ language = "en", jellyfinUpdate = "on" } = {}) {
-  return {
+function sampleHass({ language = "en", jellyfinUpdate = "on", d2haDown = false } = {}) {
+  const hass = {
     language,
     devices: {
       srv: {
@@ -160,6 +160,18 @@ function sampleHass({ language = "en", jellyfinUpdate = "on" } = {}) {
       "sensor.unrelated": { state: "x", attributes: {} },
     },
   };
+  if (d2haDown) {
+    // The entry is not loaded: every d2ha entity is unavailable.
+    for (const [entityId, entry] of Object.entries(hass.entities)) {
+      if (entry.platform === "d2ha" && hass.states[entityId]) {
+        hass.states[entityId] = {
+          state: "unavailable",
+          attributes: hass.states[entityId].attributes,
+        };
+      }
+    }
+  }
+  return hass;
 }
 
 /** The sections of a view, keyed by the text of their heading card. */
@@ -215,6 +227,60 @@ test("no pending updates: the up-to-date note instead of tiles", () => {
     )
   );
   assert.ok(!updates.some((card) => card.entity === "update.jellyfin_update"));
+});
+
+test("d2ha unreachable: one note, no up-to-date note, no counter", () => {
+  const sections = sectionsByHeading(
+    generateDashboard(sampleHass({ d2haDown: true })).views[0]
+  );
+  const overview = sections["Overview"];
+  assert.ok(
+    overview.some(
+      (card) => card.type === "markdown" && card.content === "D2HA is not reachable."
+    ),
+    "the unreachable note"
+  );
+  assert.ok(
+    !overview.some(
+      (card) => card.type === "markdown" && card.content.includes("containers running")
+    ),
+    "no unavailable / ? counter"
+  );
+  const updates = sections["Updates"];
+  assert.ok(
+    !updates.some((card) => card.type === "markdown"),
+    "no false up-to-date note"
+  );
+});
+
+test("d2ha unreachable, in Italian", () => {
+  const sections = sectionsByHeading(
+    generateDashboard(sampleHass({ d2haDown: true, language: "it" })).views[0]
+  );
+  assert.ok(
+    sections["Panoramica"].some(
+      (card) => card.type === "markdown" && card.content === "D2HA non è raggiungibile."
+    )
+  );
+  assert.ok(!sections["Aggiornamenti"].some((card) => card.type === "markdown"));
+});
+
+test("update all and clean images ask for confirmation, check does not", () => {
+  const sections = sectionsByHeading(generateDashboard(sampleHass()).views[0]);
+  const updateAll = sections["Updates"].find(
+    (card) => card.entity === "button.d2ha_update_all"
+  );
+  assert.equal(typeof updateAll.tap_action.confirmation.text, "string");
+  assert.ok(updateAll.tap_action.confirmation.text.length > 0);
+  const checkNow = sections["Updates"].find(
+    (card) => card.entity === "button.d2ha_check_for_updates"
+  );
+  assert.equal(checkNow.tap_action.confirmation, undefined);
+  const cleanImages = sections["Maintenance"].find(
+    (card) => card.entity === "button.d2ha_clean_images"
+  );
+  assert.equal(typeof cleanImages.tap_action.confirmation.text, "string");
+  assert.ok(cleanImages.tap_action.confirmation.text.length > 0);
 });
 
 test("containers grouped by stack, health and update status visible", () => {

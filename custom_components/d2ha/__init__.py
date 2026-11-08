@@ -22,13 +22,16 @@ type D2HAConfigEntry = ConfigEntry[D2HACoordinator]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: D2HAConfigEntry) -> bool:
+    # The strategy module is served before the first refresh: when D2HA is
+    # down at start-up the entry goes into setup retry, but a saved D2HA
+    # dashboard must still find /d2ha_frontend/d2ha-strategy.js.
+    await async_register_frontend(hass)
     client = D2HAClient(
         async_get_clientsession(hass), entry.data[CONF_URL], entry.data[CONF_TOKEN]
     )
     coordinator = D2HACoordinator(hass, client)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
-    await async_register_frontend(hass)
     # The server device exists before the platforms, so container devices can
     # link to it with via_device_id.
     dr.async_get(hass).async_get_or_create(

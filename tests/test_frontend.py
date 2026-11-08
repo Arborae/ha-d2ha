@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from conftest import CONTAINERS, INFO, setup_integration
+from conftest import CONTAINERS, INFO, URL, setup_integration
 
 pytestmark = pytest.mark.asyncio
 
@@ -57,3 +57,27 @@ async def test_registration_happens_once_with_two_servers(hass, d2ha_server):
     await setup_integration(hass)
     await setup_integration(hass, url=url_b)
     assert len([url for url in manager.urls if "d2ha_frontend" in url]) == 1
+
+
+async def test_module_is_served_while_d2ha_is_unreachable(
+    hass, d2ha_server, hass_client
+):
+    """D2HA down at start-up: the entry retries, but the module stays served."""
+    import aiohttp
+
+    from homeassistant.config_entries import ConfigEntryState
+
+    manager = _fake_frontend_urls(hass)
+    d2ha_server.clear_requests()
+    d2ha_server.get(
+        f"{URL}/api/v1/info", exc=aiohttp.ClientConnectionError("refused")
+    )
+    entry = await setup_integration(hass)
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    client = await hass_client()
+    response = await client.get("/d2ha_frontend/d2ha-strategy.js")
+    assert response.status == 200
+    assert any(
+        url.startswith("/d2ha_frontend/d2ha-strategy.js?v=")
+        for url in manager.urls
+    )

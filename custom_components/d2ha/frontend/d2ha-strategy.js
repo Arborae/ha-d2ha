@@ -21,6 +21,11 @@
       running: "containers running",
       updates: "Updates",
       upToDate: "Everything is up to date.",
+      unreachable: "D2HA is not reachable.",
+      confirmUpdateAll:
+        "Update all containers? They are updated one at a time, each with its own restart of a few seconds.",
+      confirmCleanImages:
+        "Delete the unused images? They can be downloaded again when needed.",
       maintenance: "Maintenance",
       other: "No stack",
     },
@@ -31,6 +36,11 @@
       running: "container in esecuzione",
       updates: "Aggiornamenti",
       upToDate: "È tutto aggiornato.",
+      unreachable: "D2HA non è raggiungibile.",
+      confirmUpdateAll:
+        "Aggiornare tutti i container? Vengono aggiornati uno alla volta, ognuno con un suo riavvio di qualche secondo.",
+      confirmCleanImages:
+        "Eliminare le immagini non usate? Si potranno riscaricare quando servono.",
       maintenance: "Manutenzione",
       other: "Senza stack",
     },
@@ -112,13 +122,20 @@
     return card;
   }
 
-  function buttonTile(entityId) {
+  function buttonTile(entityId, confirmationText) {
+    var action = {
+      action: "perform-action",
+      perform_action: "button.press",
+      target: { entity_id: entityId },
+    };
+    if (confirmationText) {
+      // A stray tap must not update every container or delete the images.
+      action.confirmation = { text: confirmationText };
+    }
     return tile(entityId, {
-      tap_action: {
-        action: "perform-action",
-        perform_action: "button.press",
-        target: { entity_id: entityId },
-      },
+      name: { type: "entity" },
+      hide_state: true, // an unpressed button reads "Unknown", like a fault
+      tap_action: action,
     });
   }
 
@@ -129,28 +146,44 @@
     var containers = containerDevices(hass, server.id);
     var sections = [];
 
+    // With the entry not loaded every entity is unavailable: say once that
+    // D2HA is not reachable, instead of a false "Everything is up to date.".
+    var updatesAvailableIds = byTranslationKey(
+      hass,
+      serverEntityIds,
+      "updates_available"
+    );
+    var updatesAvailableState = updatesAvailableIds.length
+      ? hass.states[updatesAvailableIds[0]]
+      : null;
+    var reachable = !!(
+      updatesAvailableState && updatesAvailableState.state !== "unavailable"
+    );
+
     // Overview: running out of the total, updates available.
     var overviewCards = [
       { type: "heading", heading: t.overview, icon: "mdi:docker" },
     ];
-    byTranslationKey(hass, serverEntityIds, "containers_running").forEach(
-      function (entityId) {
-        var state = hass.states[entityId];
-        var total =
-          state && state.attributes.containers != null
-            ? state.attributes.containers
-            : "?";
-        overviewCards.push({
-          type: "markdown",
-          content: "**" + state.state + " / " + total + "** " + t.running,
-        });
-      }
-    );
-    byTranslationKey(hass, serverEntityIds, "updates_available").forEach(
-      function (entityId) {
-        overviewCards.push(tile(entityId));
-      }
-    );
+    if (!reachable) {
+      overviewCards.push({ type: "markdown", content: t.unreachable });
+    } else {
+      byTranslationKey(hass, serverEntityIds, "containers_running").forEach(
+        function (entityId) {
+          var state = hass.states[entityId];
+          var total =
+            state && state.attributes.containers != null
+              ? state.attributes.containers
+              : "?";
+          overviewCards.push({
+            type: "markdown",
+            content: "**" + state.state + " / " + total + "** " + t.running,
+          });
+        }
+      );
+    }
+    updatesAvailableIds.forEach(function (entityId) {
+      overviewCards.push(tile(entityId, { name: { type: "entity" } }));
+    });
     sections.push({ type: "grid", cards: overviewCards });
 
     // Updates: a tile for each update that is on, then the two actions.
@@ -175,12 +208,14 @@
         tile(entityId, { features: [{ type: "update-actions" }] })
       );
     });
-    if (pending.length === 0) {
+    if (pending.length === 0 && reachable) {
       updateCards.push({ type: "markdown", content: t.upToDate });
     }
     ["update_all", "check_now"].forEach(function (key) {
       byTranslationKey(hass, serverEntityIds, key).forEach(function (entityId) {
-        updateCards.push(buttonTile(entityId));
+        updateCards.push(
+          buttonTile(entityId, key === "update_all" ? t.confirmUpdateAll : null)
+        );
       });
     });
     sections.push({ type: "grid", cards: updateCards });
@@ -227,7 +262,12 @@
           stateContent.push("health");
         }
         stateContent.push("update_status");
-        cards.push(tile(entityId, { state_content: stateContent }));
+        cards.push(
+          tile(entityId, {
+            name: { type: "device" },
+            state_content: stateContent,
+          })
+        );
       });
       sections.push({ type: "grid", cards: cards });
     });
@@ -238,12 +278,12 @@
     ];
     byTranslationKey(hass, serverEntityIds, "unused_images").forEach(
       function (entityId) {
-        maintenanceCards.push(tile(entityId));
+        maintenanceCards.push(tile(entityId, { name: { type: "entity" } }));
       }
     );
     byTranslationKey(hass, serverEntityIds, "clean_images").forEach(
       function (entityId) {
-        maintenanceCards.push(buttonTile(entityId));
+        maintenanceCards.push(buttonTile(entityId, t.confirmCleanImages));
       }
     );
     sections.push({ type: "grid", cards: maintenanceCards });
