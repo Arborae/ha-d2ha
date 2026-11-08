@@ -134,6 +134,28 @@ async def test_stale_container_devices_can_be_deleted(hass, d2ha_server):
     assert not await async_remove_config_entry_device(hass, entry, server)
 
 
+async def test_no_device_is_deleted_while_d2ha_is_unreachable(hass, d2ha_server):
+    """With D2HA down at start-up the entry is not loaded: keep every device."""
+    import aiohttp
+
+    from homeassistant.config_entries import ConfigEntryState
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.d2ha import async_remove_config_entry_device
+    from custom_components.d2ha.const import DOMAIN
+
+    d2ha_server.clear_requests()
+    d2ha_server.get(f"{URL}/api/v1/info", exc=aiohttp.ClientConnectionError("refused"))
+    entry = await setup_integration(hass)
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    # A container device left from the last run.
+    jellyfin = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, f"{entry.entry_id}_media_jellyfin")},
+    )
+    assert not await async_remove_config_entry_device(hass, entry, jellyfin)
+
+
 async def test_update_entities(hass, d2ha_server):
     await setup_integration(hass)
     jellyfin = hass.states.get("update.jellyfin_update")
