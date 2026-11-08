@@ -44,7 +44,7 @@
         "name": "Unused images"
       },
       "container_state": {
-        "name": "{name} state"
+        "name": "State"
       }
     },
     "button": {

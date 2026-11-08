@@ -6,7 +6,8 @@ dashboards and automations.
 
 ## What you get
 
-One **D2HA** device with, for every container you choose in D2HA:
+One device for every container you choose in D2HA (named after the container,
+under the **D2HA** server device), each with:
 
 - an **update entity** — installed and latest version, release notes of the exact new
   version, breaking changes flag, live progress while updating, *Install* to run the safe
@@ -24,6 +25,8 @@ Updates started from the D2HA web interface show their progress here too, and an
 
 ## Installation
 
+Requires Home Assistant 2026.8 or later.
+
 [![Open this repository in the Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=arborae&repository=ha-d2ha&category=integration)
 
 1. Install the integration. The link above opens it in the Marketplace (or in HACS) and
@@ -32,8 +35,9 @@ Updates started from the D2HA web interface show their progress here too, and an
      link**, enter `https://github.com/arborae/ha-d2ha` with type **Integration** (the
      first time, the Marketplace asks you to connect GitHub), then **Install** and
      **Restart Home Assistant**.
-   - **Earlier versions:** in HACS, add `https://github.com/arborae/ha-d2ha` as a custom
-     repository of type **Integration**, download **D2HA** and restart Home Assistant.
+   - **Home Assistant 2026.8 to 2026.10:** in HACS, add `https://github.com/arborae/ha-d2ha`
+     as a custom repository of type **Integration**, download **D2HA** and restart Home
+     Assistant.
 2. In D2HA, open **Settings → Home Assistant** and create an API token (shown once).
 3. In Home Assistant, **Settings → Devices & services → Add integration → D2HA**: enter the
    address of D2HA (for example `http://127.0.0.1:12021` when they share a host) and the

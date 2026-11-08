@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import D2HACoordinator
-from .entity import D2HAEntity
+from .entity import D2HAContainerEntity, D2HAEntity
 
 PARALLEL_UPDATES = 0
 
@@ -82,19 +82,14 @@ class D2HACounterSensor(D2HAEntity, SensorEntity):
         return None
 
 
-class D2HAContainerStateSensor(D2HAEntity, SensorEntity):
+class D2HAContainerStateSensor(D2HAContainerEntity, SensorEntity):
     """The Docker state of one container (running, exited, ...)."""
 
     _attr_translation_key = "container_state"
 
     def __init__(self, coordinator: D2HACoordinator, entry_id: str, key: str) -> None:
-        super().__init__(coordinator, entry_id)
-        self._key = key
+        super().__init__(coordinator, entry_id, key)
         self._attr_unique_id = f"{entry_id}_{key}_state"
-        container = coordinator.container(key) or {}
-        name = container.get("name", key)
-        self._attr_translation_placeholders = {"name": name}
-        self._attr_suggested_object_id = f"d2ha_{name}_state"
 
     @property
     def _container(self) -> dict[str, Any]:
