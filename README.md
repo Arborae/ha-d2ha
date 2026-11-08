@@ -25,8 +25,16 @@ Updates started from the D2HA web interface show their progress here too, and an
 
 ## Installation
 
-1. In **HACS → ⋮ → Custom repositories**, add `https://github.com/Arborae/ha-d2ha` with
-   category **Integration**, then download **D2HA** and restart Home Assistant.
+[![Open this repository in the Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=arborae&repository=ha-d2ha&category=integration)
+
+1. Install the integration. The link above opens it in the Marketplace (or in HACS) and
+   offers to add it.
+   - **Home Assistant 2026.11 or later:** open **Settings → Marketplace → Add from
+     link**, enter `https://github.com/arborae/ha-d2ha` with type **Integration** (the
+     first time, the Marketplace asks you to connect GitHub), then **Install** and
+     **Restart Home Assistant**.
+   - **Earlier versions:** in HACS, add `https://github.com/arborae/ha-d2ha` as a custom
+     repository of type **Integration**, download **D2HA** and restart Home Assistant.
 2. In D2HA, open **Settings → Home Assistant** and create an API token (shown once).
 3. In Home Assistant, **Settings → Devices & services → Add integration → D2HA**: enter the
    address of D2HA (for example `http://127.0.0.1:12021` when they share a host) and the
