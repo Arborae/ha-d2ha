@@ -343,12 +343,30 @@
     }
   };
 
-  if (!customElements.get("ll-strategy-dashboard-d2ha")) {
-    customElements.define("ll-strategy-dashboard-d2ha", D2haDashboardStrategy);
+  // Home Assistant loads this module next to its own code, and its frontend
+  // replaces window.customElements with a scoped registry when it starts: an
+  // element defined before that is not in the new registry, and the dashboard
+  // fails with "Timeout waiting for strategy element". So define the elements
+  // only once the frontend is there (<home-assistant> defined), in the
+  // registry window.customElements is by then.
+  function register() {
+    var registry = window.customElements;
+    if (!registry.get("ll-strategy-dashboard-d2ha")) {
+      registry.define("ll-strategy-dashboard-d2ha", D2haDashboardStrategy);
+    }
+    if (!registry.get("ll-strategy-view-d2ha")) {
+      registry.define("ll-strategy-view-d2ha", D2haViewStrategy);
+    }
   }
-  if (!customElements.get("ll-strategy-view-d2ha")) {
-    customElements.define("ll-strategy-view-d2ha", D2haViewStrategy);
-  }
+  (function waitForFrontend(tries) {
+    if (window.customElements.get("home-assistant") || tries <= 0) {
+      register();
+    } else {
+      setTimeout(function () {
+        waitForFrontend(tries - 1);
+      }, 50);
+    }
+  })(600); // up to 30 s, then register anyway
 
   var browserStrings = strings(null);
   window.customStrategies = window.customStrategies || [];
