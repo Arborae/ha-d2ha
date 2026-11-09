@@ -92,3 +92,45 @@ class D2HAConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
             errors=errors,
         )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """A new address (new host, reverse proxy, port), same entry."""
+        errors: dict[str, str] = {}
+        entry = self._get_reconfigure_entry()
+        if user_input is not None:
+            url = normalize_url(user_input[CONF_URL])
+            # An empty token keeps the current one.
+            token = user_input.get(CONF_TOKEN, "").strip() or entry.data[CONF_TOKEN]
+            try:
+                await self._validate(url, token)
+            except D2HAAuthError:
+                errors["base"] = "invalid_auth"
+            except D2HAConnectionError:
+                errors["base"] = "cannot_connect"
+            except D2HAError:
+                errors["base"] = "unknown"
+            else:
+                if url != entry.data[CONF_URL]:
+                    # The unique id is the address: another entry may own it.
+                    await self.async_set_unique_id(url)
+                    self._abort_if_unique_id_configured()
+                return self.async_update_reload_and_abort(
+                    entry,
+                    unique_id=url,
+                    data_updates={CONF_URL: url, CONF_TOKEN: token},
+                )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                vol.Schema(
+                    {
+                        vol.Required(CONF_URL): str,
+                        vol.Optional(CONF_TOKEN, default=""): str,
+                    }
+                ),
+                {CONF_URL: entry.data[CONF_URL]},
+            ),
+            errors=errors,
+        )

@@ -15,6 +15,14 @@
         "data": {
           "token": "API token"
         }
+      },
+      "reconfigure": {
+        "title": "Change the D2HA address",
+        "description": "New host, reverse proxy or port. Leave the token empty to keep the current one.",
+        "data": {
+          "url": "Address of D2HA",
+          "token": "API token (optional)"
+        }
       }
     },
     "error": {
@@ -24,7 +32,8 @@
     },
     "abort": {
       "already_configured": "This D2HA server is already configured.",
-      "reauth_successful": "The token was updated."
+      "reauth_successful": "The token was updated.",
+      "reconfigure_successful": "The address was updated."
     }
   },
   "entity": {
