@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import D2HACoordinator
@@ -57,6 +58,9 @@ class D2HACounterSensor(D2HAEntity, SensorEntity):
         self._kind = kind
         self._attr_translation_key = kind
         self._attr_unique_id = f"{entry_id}_{kind}"
+        if kind == "unused_images":
+            # Housekeeping, not a number to watch: it sits under "Diagnostic".
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def native_value(self) -> int | None:
