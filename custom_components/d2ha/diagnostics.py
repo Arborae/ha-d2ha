@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
@@ -10,9 +10,13 @@ from homeassistant.core import HomeAssistant
 from .const import CONF_TOKEN, CONF_URL
 from .coordinator import D2HACoordinator
 
+if TYPE_CHECKING:
+    from . import D2HAConfigEntry
+
 TO_REDACT = {CONF_URL, CONF_TOKEN}
 
-# Per container only what helps a bug report: no name, status text or id.
+# Per container only what helps a bug report: no status text or Docker id;
+# the key carries stack and container names.
 CONTAINER_FIELDS = (
     "key",
     "state",
@@ -28,7 +32,7 @@ CONTAINER_FIELDS = (
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry
+    hass: HomeAssistant, entry: D2HAConfigEntry
 ) -> dict[str, Any]:
     coordinator: D2HACoordinator = entry.runtime_data
     containers = []

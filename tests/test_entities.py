@@ -462,7 +462,7 @@ async def test_the_new_version_shows_right_after_the_install(hass, d2ha_server, 
 
 
 async def test_unused_images_is_diagnostic_the_rest_is_primary(hass, d2ha_server):
-    """Housekeeping under "Diagnostic"; counters and buttons stay primary."""
+    """Housekeeping under "Diagnostic"; counters, updates, buttons stay primary."""
     from homeassistant.helpers import entity_registry as er
     from homeassistant.helpers.entity import EntityCategory
 
@@ -479,6 +479,7 @@ async def test_unused_images_is_diagnostic_the_rest_is_primary(hass, d2ha_server
         "button.d2ha_check_for_updates",
         "button.d2ha_update_all",
         "button.d2ha_clean_images",
+        "update.jellyfin_update",
     ):
         assert entities.async_get(entity_id).entity_category is None, entity_id
 
