@@ -62,6 +62,8 @@ class D2HAContainerUpdate(D2HAContainerEntity, UpdateEntity):
     """The update state of one container; install runs the safe update."""
 
     _attr_translation_key = "container_update"
+    # The main entity of the container device: no Configuration/Diagnostic category.
+    _attr_entity_category = None
 
     def __init__(self, coordinator: D2HACoordinator, entry_id: str, key: str) -> None:
         super().__init__(coordinator, entry_id, key)

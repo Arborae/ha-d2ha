@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import D2HACoordinator
