@@ -60,7 +60,7 @@ Requires Home Assistant 2026.8 or later.
    token.
 
 Choose which containers appear in Home Assistant in D2HA, **Settings → Home Assistant**.
-The full guide, with screenshots: [D2HA in Home
+The full guide: [D2HA in Home
 Assistant](https://arborae.github.io/docker2homeassistant/guide/home-assistant/).
 
 ## Notes
