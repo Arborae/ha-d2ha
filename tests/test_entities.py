@@ -459,3 +459,57 @@ async def test_the_new_version_shows_right_after_the_install(hass, d2ha_server, 
     state = hass.states.get("update.jellyfin_update")
     assert state.attributes["installed_version"] == "12.4"
     assert state.state == "off"
+
+
+async def test_unused_images_is_diagnostic_the_rest_is_primary(hass, d2ha_server):
+    """Housekeeping under "Diagnostic"; counters and buttons stay primary."""
+    from homeassistant.helpers import entity_registry as er
+    from homeassistant.helpers.entity import EntityCategory
+
+    await setup_integration(hass)
+    entities = er.async_get(hass)
+    assert (
+        entities.async_get("sensor.d2ha_unused_images").entity_category
+        is EntityCategory.DIAGNOSTIC
+    )
+    for entity_id in (
+        "sensor.d2ha_updates_available",
+        "sensor.d2ha_containers_running",
+        "sensor.jellyfin_state",
+        "button.d2ha_check_for_updates",
+        "button.d2ha_update_all",
+        "button.d2ha_clean_images",
+    ):
+        assert entities.async_get(entity_id).entity_category is None, entity_id
+
+
+async def test_icons_json_matches_the_translation_keys():
+    """No typos between the entities and icons.json (hassfest checks the rest)."""
+    import json
+    from pathlib import Path
+
+    icons = json.loads(
+        (
+            Path(__file__).parent.parent / "custom_components/d2ha/icons.json"
+        ).read_text()
+    )
+    assert set(icons["entity"]["sensor"]) == {
+        "updates_available",
+        "containers_running",
+        "unused_images",
+        "container_state",
+    }
+    assert set(icons["entity"]["button"]) == {
+        "check_now",
+        "update_all",
+        "clean_images",
+    }
+    # Every Docker state of API.md has its own icon.
+    assert set(icons["entity"]["sensor"]["container_state"]["state"]) == {
+        "created",
+        "restarting",
+        "running",
+        "paused",
+        "exited",
+        "dead",
+    }

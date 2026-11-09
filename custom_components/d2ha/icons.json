@@ -1,0 +1,25 @@
+{
+  "entity": {
+    "button": {
+      "check_now": { "default": "mdi:refresh" },
+      "update_all": { "default": "mdi:update" },
+      "clean_images": { "default": "mdi:broom" }
+    },
+    "sensor": {
+      "containers_running": { "default": "mdi:docker" },
+      "updates_available": { "default": "mdi:package-up" },
+      "unused_images": { "default": "mdi:layers-off" },
+      "container_state": {
+        "default": "mdi:cube-outline",
+        "state": {
+          "created": "mdi:plus-circle-outline",
+          "restarting": "mdi:restart",
+          "running": "mdi:play-circle",
+          "paused": "mdi:pause-circle",
+          "exited": "mdi:stop-circle",
+          "dead": "mdi:alert-circle-outline"
+        }
+      }
+    }
+  }
+}
