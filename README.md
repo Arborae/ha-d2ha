@@ -4,6 +4,8 @@ The Home Assistant integration for [D2HA](https://github.com/Arborae/docker2home
 know which containers have updates, read the release notes and update them — from your
 dashboards and automations.
 
+![The D2HA dashboard builds itself: counters, pending updates, containers grouped by stack and the maintenance actions](https://raw.githubusercontent.com/Arborae/ha-d2ha/main/images/dashboard.png)
+
 ## What you get
 
 One device for every container you choose in D2HA (named after the container,
@@ -23,6 +25,10 @@ Plus server-wide entities:
 Updates started from the D2HA web interface show their progress here too, and an
 "updates available" sensor makes Telegram or mobile notifications a two-line automation.
 
+![Settings → Updates: one row per container, with the image it runs](https://raw.githubusercontent.com/Arborae/ha-d2ha/main/images/settings-updates.png)
+
+![The release notes of the exact new version, before you update](https://raw.githubusercontent.com/Arborae/ha-d2ha/main/images/update-release-notes.png)
+
 ## Dashboard
 
 The integration ships a dashboard strategy: **Settings → Dashboards → Add dashboard →
@@ -31,6 +37,7 @@ release notes and install actions, the containers grouped by stack with health a
 update status, and the maintenance actions. It is rebuilt from the live entities every
 time it opens, with built-in cards only, in English and Italian, and needs nothing else
 installed. With more than one D2HA server configured, the dashboard has one view each.
+More in [the dashboard guide](https://arborae.github.io/docker2homeassistant/guide/dashboard/).
 
 ## Installation
 
@@ -53,6 +60,8 @@ Requires Home Assistant 2026.8 or later.
    token.
 
 Choose which containers appear in Home Assistant in D2HA, **Settings → Home Assistant**.
+The full guide, with screenshots: [D2HA in Home
+Assistant](https://arborae.github.io/docker2homeassistant/guide/home-assistant/).
 
 ## Notes
 
