@@ -9,6 +9,7 @@
       "containers_running": { "default": "mdi:docker" },
       "updates_available": { "default": "mdi:package-up" },
       "unused_images": { "default": "mdi:layers-off" },
+      "last_check": { "default": "mdi:clock-check-outline" },
       "container_state": {
         "default": "mdi:cube-outline",
         "state": {

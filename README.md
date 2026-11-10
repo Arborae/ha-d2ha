@@ -13,12 +13,14 @@ under the **D2HA** server device), each with:
 
 - an **update entity** — installed and latest version, release notes of the exact new
   version, breaking changes flag, live progress while updating, *Install* to run the safe
-  update (only when D2HA allows it);
-- a **state sensor** — running, exited, health, image, stack.
+  update (only when D2HA allows it); when a check fails, the `check_error` attribute says
+  why;
+- a **state sensor** — running, exited, health, image, stack, when it was created.
 
 Plus server-wide entities:
 
-- sensors: **updates available**, **containers running**, **unused images**;
+- sensors: **updates available**, **containers running**, **unused images**, **last
+  check** (when D2HA last looked for updates, and when it will look again);
 - buttons: **Check for updates**, **Update all**, **Clean images** (the last two are hidden
   when D2HA runs in read-only mode).
 

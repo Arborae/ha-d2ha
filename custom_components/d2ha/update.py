@@ -136,6 +136,8 @@ class D2HAContainerUpdate(D2HAContainerEntity, UpdateEntity):
             "image": container.get("image"),
             "stack": container.get("stack"),
             "update_status": container.get("update"),
+            # Why the check failed, straight from D2HA; empty unless the status is "error".
+            "check_error": container.get("error") or None,
             "breaking_changes": container.get("breaking", False),
             "can_update": container.get("can_update", False),
         }
