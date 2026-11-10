@@ -39,6 +39,97 @@ async def test_container_states(hass, d2ha_server):
     assert hass.states.get("sensor.db_state").state == "exited"
 
 
+async def test_last_check_sensor(hass, d2ha_server):
+    """A timestamp under "Diagnostic" on the server device, from /info "check"."""
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+    from homeassistant.helpers.entity import EntityCategory
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.d2ha.const import DOMAIN
+
+    entry = await setup_integration(hass)
+    state = hass.states.get("sensor.d2ha_last_check")
+    assert state is not None
+    last = dt_util.utc_from_timestamp(INFO["check"]["last"])
+    assert state.state == last.isoformat(timespec="seconds")
+    assert state.attributes["device_class"] == "timestamp"
+    assert state.attributes["checking"] is False
+    assert (
+        state.attributes["next_check"]
+        == dt_util.utc_from_timestamp(INFO["check"]["next"]).isoformat(timespec="seconds")
+    )  # whole seconds, like the state
+    registered = er.async_get(hass).async_get("sensor.d2ha_last_check")
+    assert registered.entity_category is EntityCategory.DIAGNOSTIC
+    server = dr.async_get(hass).async_get_device_by_identifier(
+        (DOMAIN, entry.entry_id), entry.entry_id
+    )
+    assert registered.device_id == server.id
+
+
+async def test_last_check_is_unknown_before_the_first_check(hass, d2ha_server):
+    """API.md: check.last and check.next are null before the first check."""
+    check = {"last": None, "next": None, "interval_hours": 6, "running": True}
+    d2ha_server.clear_requests()
+    register_d2ha(d2ha_server, info={**INFO, "check": check})
+    await setup_integration(hass)
+    state = hass.states.get("sensor.d2ha_last_check")
+    assert state.state == "unknown"
+    assert state.attributes["checking"] is True
+    assert state.attributes["next_check"] is None
+
+
+async def test_last_check_follows_a_new_check(hass, d2ha_server):
+    """A check that ends in D2HA moves the sensor at the next poll."""
+    from homeassistant.util import dt as dt_util
+
+    entry = await setup_integration(hass)
+    before = hass.states.get("sensor.d2ha_last_check").state
+    later = INFO["check"]["last"] + 3600
+    check = {**INFO["check"], "last": later, "next": later + 6 * 3600}
+    d2ha_server.clear_requests()
+    register_d2ha(d2ha_server, info={**INFO, "check": check})
+    await entry.runtime_data.async_request_refresh()
+    await hass.async_block_till_done()
+    state = hass.states.get("sensor.d2ha_last_check")
+    assert state.state != before
+    assert state.state == dt_util.utc_from_timestamp(later).isoformat(
+        timespec="seconds"
+    )
+
+
+async def test_last_check_survives_an_answer_without_check(hass, d2ha_server):
+    """An older D2HA, or a broken value: unknown, never an error."""
+    info = {key: value for key, value in INFO.items() if key != "check"}
+    d2ha_server.clear_requests()
+    register_d2ha(d2ha_server, info=info)
+    entry = await setup_integration(hass)
+    state = hass.states.get("sensor.d2ha_last_check")
+    assert state.state == "unknown"
+    assert state.attributes["checking"] is False
+    d2ha_server.clear_requests()
+    register_d2ha(d2ha_server, info={**INFO, "check": {"last": "soon", "next": []}})
+    await entry.runtime_data.async_request_refresh()
+    await hass.async_block_till_done()
+    state = hass.states.get("sensor.d2ha_last_check")
+    assert state.state == "unknown"
+    assert state.attributes["next_check"] is None
+
+
+async def test_state_sensor_tells_when_the_container_was_created(hass, d2ha_server):
+    from homeassistant.util import dt as dt_util
+
+    fresh = make_container("fresh", "fresh", created=0)  # Docker gave no time
+    d2ha_server.clear_requests()
+    register_d2ha(d2ha_server, containers=with_container(fresh))
+    await setup_integration(hass)
+    jellyfin = hass.states.get("sensor.jellyfin_state")
+    assert (
+        jellyfin.attributes["created"]
+        == dt_util.utc_from_timestamp(1762100000).isoformat()
+    )
+    assert hass.states.get("sensor.fresh_state").attributes["created"] is None
+
+
 async def test_state_sensor_sits_under_the_container_device(hass, d2ha_server):
     """The device names the container; the entity is just "State"."""
     await setup_integration(hass)
@@ -188,6 +279,27 @@ async def test_unknown_update_has_no_latest_version(hass, d2ha_server):
     assert state is not None
     assert state.state == "unknown"
     assert state.attributes["latest_version"] is None
+
+
+async def test_failed_check_tells_why(hass, d2ha_server):
+    """update "error": the reason D2HA gives is an attribute; no reason otherwise."""
+    broken = make_container(
+        "broken",
+        "broken",
+        update="error",
+        error="rate limited",
+        installed_version="1.0",
+        latest_version="1.0",
+    )
+    d2ha_server.clear_requests()
+    register_d2ha(d2ha_server, containers=with_container(broken))
+    await setup_integration(hass)
+    state = hass.states.get("update.broken_update")
+    assert state.state == "unknown"  # the check failed: not "up-to-date"
+    assert state.attributes["update_status"] == "error"
+    assert state.attributes["check_error"] == "rate limited"
+    # API.md: "error" is "" for every other status.
+    assert hass.states.get("update.jellyfin_update").attributes["check_error"] is None
 
 
 async def test_proxy_has_update_but_no_install(hass, d2ha_server):
@@ -468,10 +580,10 @@ async def test_unused_images_is_diagnostic_the_rest_is_primary(hass, d2ha_server
 
     await setup_integration(hass)
     entities = er.async_get(hass)
-    assert (
-        entities.async_get("sensor.d2ha_unused_images").entity_category
-        is EntityCategory.DIAGNOSTIC
-    )
+    for entity_id in ("sensor.d2ha_unused_images", "sensor.d2ha_last_check"):
+        assert (
+            entities.async_get(entity_id).entity_category is EntityCategory.DIAGNOSTIC
+        ), entity_id
     for entity_id in (
         "sensor.d2ha_updates_available",
         "sensor.d2ha_containers_running",
@@ -498,6 +610,7 @@ async def test_icons_json_matches_the_translation_keys():
         "updates_available",
         "containers_running",
         "unused_images",
+        "last_check",
         "container_state",
     }
     assert set(icons["entity"]["button"]) == {

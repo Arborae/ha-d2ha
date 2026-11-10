@@ -52,6 +52,9 @@
       "unused_images": {
         "name": "Immagini inutilizzate"
       },
+      "last_check": {
+        "name": "Ultimo controllo"
+      },
       "container_state": {
         "name": "Stato"
       }
