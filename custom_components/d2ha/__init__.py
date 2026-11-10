@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import D2HAClient
-from .const import CONF_TOKEN, CONF_URL, DOMAIN
+from .const import CONF_TOKEN, CONF_URL, DOMAIN, REMOVE_AFTER
 from .coordinator import D2HACoordinator
 from .frontend import async_register_frontend
 
@@ -54,7 +55,66 @@ async def async_setup_entry(hass: HomeAssistant, entry: D2HAConfigEntry) -> bool
         )
 
     entry.async_on_unload(coordinator.async_add_listener(update_device_version))
+    _watch_gone_containers(hass, entry)
     return True
+
+
+def _container_key(entry: D2HAConfigEntry, device: dr.DeviceEntry) -> str | None:
+    """The key of the container behind a device; None for the server device."""
+    prefix = f"{entry.entry_id}_"
+    for domain, identifier in device.identifiers:
+        if domain == DOMAIN and identifier.startswith(prefix):
+            return identifier[len(prefix):]
+    return None
+
+
+def _watch_gone_containers(hass: HomeAssistant, entry: D2HAConfigEntry) -> None:
+    """Remove the device of a container D2HA has not listed for a day.
+
+    Only the answers of D2HA count: the time it does not answer is not
+    absence, and neither is an empty list, more likely a Docker that is
+    starting than a server without containers. The count starts again when
+    the container is back, and when Home Assistant restarts.
+    """
+    coordinator = entry.runtime_data
+    absent: dict[str, float] = {}  # device id -> seconds of answers without it
+    last_answer: float | None = None
+
+    @callback
+    def check() -> None:
+        nonlocal last_answer
+        containers = coordinator.data.get("containers", [])
+        if not coordinator.last_update_success or not containers:
+            last_answer = None
+            return
+        # A monotonic clock: a jump of the system time removes nothing.
+        now = time.monotonic()
+        step = now - last_answer if last_answer is not None else 0.0
+        last_answer = now
+        keys = {container["key"] for container in containers}
+        device_registry = dr.async_get(hass)
+        for device in dr.async_entries_for_config_entry(
+            device_registry, entry.entry_id
+        ):
+            key = _container_key(entry, device)
+            if key is None or key in keys:
+                absent.pop(device.id, None)
+                continue
+            absent[device.id] = (
+                absent[device.id] + step if device.id in absent else 0.0
+            )
+            if absent[device.id] < REMOVE_AFTER.total_seconds():
+                continue
+            del absent[device.id]
+            _LOGGER.info(
+                "Removing the device of %s: D2HA has not listed the container for %s hours",
+                device.name_by_user or device.name,
+                int(REMOVE_AFTER.total_seconds() // 3600),
+            )
+            device_registry.async_remove_device(device.id)
+
+    check()
+    entry.async_on_unload(coordinator.async_add_listener(check))
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: D2HAConfigEntry) -> bool:
@@ -68,10 +128,5 @@ async def async_remove_config_entry_device(
     if entry.state is not ConfigEntryState.LOADED:
         # Without an answer from D2HA there is no telling a removed container.
         return False
-    coordinator = entry.runtime_data
-    prefix = f"{entry.entry_id}_"
-    for domain, identifier in device_entry.identifiers:
-        if domain != DOMAIN or not identifier.startswith(prefix):
-            continue
-        return coordinator.container(identifier[len(prefix):]) is None
-    return False
+    key = _container_key(entry, device_entry)
+    return key is not None and entry.runtime_data.container(key) is None
