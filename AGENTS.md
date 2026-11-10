@@ -1,6 +1,7 @@
 # ha-d2ha – Agent Guide
 
-The Home Assistant integration for D2HA, installable from HACS as a custom repository.
+The Home Assistant integration for D2HA, in the catalogue of Home Assistant's Marketplace
+(the HACS default list).
 Two AI assistants work across Arborae: **Kimi** owns this repository, **Claude** owns the
 app repository (`Arborae/docker2homeassistant`). The owner merges and releases.
 
