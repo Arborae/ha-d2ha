@@ -57,7 +57,7 @@ async def async_setup_entry(
             return
         known.update(container["key"] for container in new)
         async_add_entities(
-            D2HAContainerStateSensor(coordinator, entry.entry_id, container["key"])
+            D2HAContainerStateSensor(coordinator, entry.entry_id, container["key"], known)
             for container in new
         )
 
@@ -138,8 +138,14 @@ class D2HAContainerStateSensor(D2HAContainerEntity, SensorEntity):
 
     _attr_translation_key = "container_state"
 
-    def __init__(self, coordinator: D2HACoordinator, entry_id: str, key: str) -> None:
-        super().__init__(coordinator, entry_id, key)
+    def __init__(
+        self,
+        coordinator: D2HACoordinator,
+        entry_id: str,
+        key: str,
+        known: set[str],
+    ) -> None:
+        super().__init__(coordinator, entry_id, key, known)
         self._attr_unique_id = f"{entry_id}_{key}_state"
 
     @property

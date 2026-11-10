@@ -73,6 +73,10 @@ Assistant](https://arborae.github.io/docker2homeassistant/guide/home-assistant/)
 - Every container is its own device, named after the container. Devices have no area
   on their own: assign one (the device page, pencil icon) and Settings → Updates
   groups the rows by it.
+- When a container is deleted, or you stop showing it to Home Assistant, its device and
+  entities are removed after D2HA has not listed it for 24 hours. Nothing is removed
+  while D2HA does not answer or lists no containers. To remove a device sooner, delete
+  it from its page.
 
 ## Development
 

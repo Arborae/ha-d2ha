@@ -50,7 +50,7 @@ async def async_setup_entry(
             return
         known.update(container["key"] for container in new)
         async_add_entities(
-            D2HAContainerUpdate(coordinator, entry.entry_id, container["key"])
+            D2HAContainerUpdate(coordinator, entry.entry_id, container["key"], known)
             for container in new
         )
 
@@ -65,8 +65,14 @@ class D2HAContainerUpdate(D2HAContainerEntity, UpdateEntity):
     # The main entity of the container device: no Configuration/Diagnostic category.
     _attr_entity_category = None
 
-    def __init__(self, coordinator: D2HACoordinator, entry_id: str, key: str) -> None:
-        super().__init__(coordinator, entry_id, key)
+    def __init__(
+        self,
+        coordinator: D2HACoordinator,
+        entry_id: str,
+        key: str,
+        known: set[str],
+    ) -> None:
+        super().__init__(coordinator, entry_id, key, known)
         self._attr_unique_id = f"{entry_id}_{key}_update"
         self._active_job: dict[str, Any] | None = None
 

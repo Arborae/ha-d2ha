@@ -10,6 +10,8 @@ CONF_TOKEN: Final = "token"
 
 SCAN_INTERVAL: Final = timedelta(seconds=60)
 SCAN_INTERVAL_ACTIVE: Final = timedelta(seconds=5)
+# How long a container must be missing before its device is removed.
+REMOVE_AFTER: Final = timedelta(hours=24)
 
 API_BASE: Final = "/api/v1"
 REQUEST_TIMEOUT: Final = 15
